@@ -1,0 +1,506 @@
+#include "detail.h"
+
+/*========================*/
+/*购票界面信息显示*/
+/*作者：苏新明*/
+/*购票时必要信息显示与获取函数集*/ 
+/*========================*/
+
+/*直达必要信息获取*/ 
+void DEdetail_get(StackNode *p,int *price,int *seatnum,int k)
+{
+	KT_train KTtrain;
+	D_train Dtrain;
+	Z_train Ztrain;
+	G_train Gtrain;
+	int i,start=0; 
+	StackNode *q=p;
+	while(q->next!=NULL)
+	{
+		q=q->next;
+	}
+	/*分以下四种情况获取*/ 
+	if(p->trainnum[0]=='K'||p->trainnum[0]=='T')
+	{
+		KT_read(p->trainnum,&KTtrain,k); 
+		for(i=0;strcmp(KTtrain.start_time[i],"###");i++)
+		{
+			if(!strcmp(KTtrain.station[i],p->station))
+			{
+				start=1;
+				seatnum[0]=atoi(KTtrain.hard_seat[i]);
+				seatnum[1]=atoi(KTtrain.hard_sleeper[i]);
+				seatnum[2]=atoi(KTtrain.soft_sleeper[i]);
+			}
+			if(!strcmp(KTtrain.station[i],q->station))
+			{
+				break;
+			}
+			if(start)
+			{
+				price[0]+=atoi(KTtrain.hardseat_fee[i]);
+				price[1]+=atoi(KTtrain.hardsleeper_fee[i]);
+				price[2]+=atoi(KTtrain.softsleeper_fee[i]);
+				seatnum[0]=(seatnum[0]<=atoi(KTtrain.hard_seat[i]))?seatnum[0]:atoi(KTtrain.hard_seat[i]);
+				seatnum[1]=(seatnum[1]<=atoi(KTtrain.hard_sleeper[i]))?seatnum[1]:atoi(KTtrain.hard_sleeper[i]);
+				seatnum[2]=(seatnum[2]<=atoi(KTtrain.soft_sleeper[i])?seatnum[2]:atoi(KTtrain.soft_sleeper[i]));
+			}		
+		}
+		price[3]=price[0]; 
+	}
+	else if(p->trainnum[0]=='G')
+	{
+		G_read(p->trainnum,&Gtrain,k);
+		for(i=0;strcmp(Gtrain.start_time[i],"###");i++)
+		{
+			if(!strcmp(Gtrain.station[i],p->station))
+			{
+				start=1;
+				seatnum[0]=atoi(Gtrain.s_seat[i]);
+				seatnum[1]=atoi(Gtrain.f_seat[i]);
+				seatnum[2]=atoi(Gtrain.b_seat[i]);
+			}
+			if(!strcmp(Gtrain.station[i],q->station))
+			{
+				break;
+			}
+			if(start)
+			{
+				price[0]+=atoi(Gtrain.sclass_fee[i]);
+				price[1]+=atoi(Gtrain.fclass_fee[i]);
+				price[2]+=atoi(Gtrain.business_fee[i]);
+				seatnum[0]=(seatnum[0]<=atoi(Gtrain.s_seat[i]))?seatnum[0]:atoi(Gtrain.s_seat[i]);
+				seatnum[1]=(seatnum[1]<=atoi(Gtrain.f_seat[i]))?seatnum[1]:atoi(Gtrain.f_seat[i]);
+				seatnum[2]=(seatnum[2]<=atoi(Gtrain.b_seat[i]))?seatnum[2]:atoi(Gtrain.b_seat[i]);
+			}	
+		} 
+	}
+	else if(p->trainnum[0]=='D')
+	{
+		D_read(p->trainnum,&Dtrain,k);
+		for(i=0;strcmp(Dtrain.start_time[i],"###");i++)
+		{
+			if(!strcmp(Dtrain.station[i],p->station))
+			{
+				start=1;
+				seatnum[0]=atoi(Dtrain.s_seat[i]);
+				seatnum[1]=atoi(Dtrain.f_seat[i]);
+			}
+			if(!strcmp(Dtrain.station[i],q->station))
+			{
+				break;
+			}
+			if(start)
+			{
+				price[0]+=atoi(Dtrain.sclass_fee[i]);
+				price[1]+=atoi(Dtrain.fclass_fee[i]);
+				seatnum[0]=(seatnum[0]<=atoi(Dtrain.s_seat[i]))?seatnum[0]:atoi(Dtrain.s_seat[i]);
+				seatnum[1]=(seatnum[0]<=atoi(Dtrain.f_seat[i]))?seatnum[0]:atoi(Dtrain.f_seat[i]);
+			}	
+		}
+		price[3]=price[0];
+	}
+	else if(p->trainnum[0]=='Z')
+	{
+		Z_read(p->trainnum,&Ztrain,k);
+		price[0]+=atoi(Ztrain.hardseat_fee);
+		price[1]+=atoi(Ztrain.hardsleeper_fee);
+		price[2]+=atoi(Ztrain.softsleeper_fee);
+		seatnum[0]=atoi(Ztrain.hard_seat);
+		seatnum[1]=atoi(Ztrain.hard_sleeper);
+		seatnum[2]=atoi(Ztrain.soft_sleeper);
+		price[3]=price[0];
+	}
+}
+
+/*直达必要信息显示*/ 
+void DEdetail_visual(StackNode *p,int *price,int *seatnum,int k)
+{
+	int i,j;
+	char _price[3][5],_seatnum[3][7];
+	DEdetail_get(p,price,seatnum,k);
+	if(p->trainnum[0]=='K'||p->trainnum[0]=='T')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(220,167,"硬座:",1,16,_BLACK);
+		puthz(420,167,"硬卧:",1,16,_BLACK);
+		puthz(220,202,"软卧:",1,16,_BLACK);
+		puthz(420,202,"无座:",1,16,_BLACK);
+		for(i=0;i<3;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(320+200*(i%2),167+35*(i/2),"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(320+200*(i%2),167+35*(i/2),_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(320+200*(i%2),167+35*(i/2),"有票",1,16,_BLACK);
+			}
+			puthz(270+200*(i%2),167+35*(i/2),_price[i],1,16,_ORANGE);
+		}
+		puthz(520,202,"有票",1,16,_BLACK);
+		puthz(470,202,_price[0],1,16,_ORANGE);
+	}
+	else if(p->trainnum[0]=='G')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(220,167,"二等座:",1,16,_BLACK);
+		puthz(420,167,"一等座:",1,16,_BLACK);
+		puthz(220,202,"商务座:",1,16,_BLACK);
+		for(i=0;i<3;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(320+200*(i%2),167+35*(i/2),"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(320+200*(i%2),167+35*(i/2),_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(320+200*(i%2),167+35*(i/2),"有票",1,16,_BLACK);
+			}
+			puthz(276+200*(i%2),167+35*(i/2),_price[i],1,16,_ORANGE);
+		}
+	}
+	else if(p->trainnum[0]=='D')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(220,167,"二等座:",1,16,_BLACK);
+		puthz(420,167,"一等座:",1,16,_BLACK);
+		puthz(420,202,"无座:",1,16,_BLACK);
+		for(i=0;i<2;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(320+200*(i%2),167+35*(i/2),"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(320+200*(i%2),167+35*(i/2),_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(320+200*(i%2),167+35*(i/2),"有票",1,16,_BLACK);
+			}
+			puthz(276+200*(i%2),167+35*(i/2),_price[i],1,16,_ORANGE);
+		}
+		puthz(520,202,"有票",1,16,_BLACK);
+		puthz(476,202,_price[0],1,16,_ORANGE);
+	}
+	else if(p->trainnum[0]=='Z')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(220,167,"硬座:",1,16,_BLACK);
+		puthz(420,167,"硬卧:",1,16,_BLACK);
+		puthz(220,202,"软卧:",1,16,_BLACK);
+		puthz(420,202,"无座:",1,16,_BLACK);
+		for(i=0;i<3;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(320+200*(i%2),167+35*(i/2),"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(320+200*(i%2),167+35*(i/2),_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(320+200*(i%2),167+35*(i/2),"有票",1,16,_BLACK);
+			}
+			puthz(270+200*(i%2),167+35*(i/2),_price[i],1,16,_ORANGE);
+		}
+		puthz(520,202,"有票",1,16,_BLACK);
+		puthz(470,202,_price[0],1,16,_ORANGE);
+	}
+}
+
+/*分割中转后，复用直达信息获取代码*/ 
+void REdetail_visual(StackNode *p,StackNode *q,int (*price)[4],int (*seatnum)[3],int k) 
+{
+	DEdetail_get(p,price[0],seatnum[0],k);//获取价格和座位信息 
+	DEdetail_get(q,price[1],seatnum[1],k);
+	REdetail1_visual(p,price[0],seatnum[0]);//显示价格和座位信息 
+	REdetail2_visual(q,price[1],seatnum[1]);
+}
+
+/*第一程信息显示*/ 
+void REdetail1_visual(StackNode *p,int *price,int *seatnum) 
+{
+	int i;
+	char _price[3][5],_seatnum[3][7];
+	if(p->trainnum[0]=='K'||p->trainnum[0]=='T')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(20,87,"硬座:",1,16,_BLACK);
+		puthz(20,122,"硬卧:",1,16,_BLACK);
+		puthz(20,157,"软卧:",1,16,_BLACK);
+		puthz(20,192,"无座:",1,16,_BLACK);
+		for(i=0;i<3;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(114,87+35*i,"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(114,87+35*i,_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(114,87+35*i,"有票",1,16,_BLACK);
+			}
+			puthz(68,87+35*i,_price[i],1,16,_ORANGE);
+		}
+		puthz(114,192,"有票",1,16,_BLACK);
+		puthz(68,192,_price[0],1,16,_ORANGE);
+	}
+	else if(p->trainnum[0]=='G')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(20,87,"二等座:",1,16,_BLACK);
+		puthz(20,122,"一等座:",1,16,_BLACK);
+		puthz(20,157,"商务座:",1,16,_BLACK);
+		for(i=0;i<3;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(114,87+35*i,"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(114,87+35*i,_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(114,87+35*i,"有票",1,16,_BLACK);
+			}
+			puthz(80,87+35*i,_price[i],1,16,_ORANGE);
+		}
+	}
+	else if(p->trainnum[0]=='D')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(20,87,"二等座:",1,16,_BLACK);
+		puthz(20,122,"一等座:",1,16,_BLACK);
+		puthz(20,192,"无座:",1,16,_BLACK);
+		for(i=0;i<2;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(114,87+35*i,"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(114,87+35*i,_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(114,87+35*i,"有票",1,16,_BLACK);
+			}
+			puthz(80,87+35*i,_price[i],1,16,_ORANGE);
+		}
+		puthz(114,192,"有票",1,16,_BLACK);
+		puthz(80,192,_price[0],1,16,_ORANGE);
+	}
+	else if(p->trainnum[0]=='Z')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(20,87,"硬座:",1,16,_BLACK);
+		puthz(20,122,"硬卧:",1,16,_BLACK);
+		puthz(20,157,"软卧:",1,16,_BLACK);
+		puthz(20,192,"无座:",1,16,_BLACK);
+		for(i=0;i<3;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(114,87+35*i,"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(114,87+35*i,_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(114,87+35*i,"有票",1,16,_BLACK);
+			}
+			puthz(68,87+35*i,_price[i],1,16,_ORANGE);
+		}
+		puthz(114,192,"有票",1,16,_BLACK);
+		puthz(68,192,_price[0],1,16,_ORANGE);
+	} 
+}
+
+/*第二程信息显示*/
+void REdetail2_visual(StackNode *p,int *price,int *seatnum) 
+{
+	int i;
+	char _price[3][5],_seatnum[3][7];
+	if(p->trainnum[0]=='K'||p->trainnum[0]=='T')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(20,247,"硬座:",1,16,_BLACK);
+		puthz(20,282,"硬卧:",1,16,_BLACK);
+		puthz(20,317,"软卧:",1,16,_BLACK);
+		puthz(20,352,"无座:",1,16,_BLACK);
+		for(i=0;i<3;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(114,247+35*i,"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(114,247+35*i,_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(114,247+35*i,"有票",1,16,_BLACK);
+			}
+			puthz(68,247+35*i,_price[i],1,16,_ORANGE);
+		}
+		puthz(114,352,"有票",1,16,_BLACK);
+		puthz(68,352,_price[0],1,16,_ORANGE);
+	}
+	else if(p->trainnum[0]=='G')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(20,247,"二等座:",1,16,_BLACK);
+		puthz(20,282,"一等座:",1,16,_BLACK);
+		puthz(20,317,"商务座:",1,16,_BLACK);
+		for(i=0;i<3;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(114,247+35*i,"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(114,247+35*i,_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(114,247+35*i,"有票",1,16,_BLACK);
+			}
+			puthz(80,247+35*i,_price[i],1,16,_ORANGE);
+		}
+	}
+	else if(p->trainnum[0]=='D')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(20,247,"二等座:",1,16,_BLACK);
+		puthz(20,282,"一等座:",1,16,_BLACK);
+		puthz(20,352,"无座:",1,16,_BLACK);
+		for(i=0;i<2;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(114,247+35*i,"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(114,247+35*i,_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(114,247+35*i,"有票",1,16,_BLACK);
+			}
+			puthz(80,247+35*i,_price[i],1,16,_ORANGE);
+		}
+		puthz(114,352,"有票",1,16,_BLACK);
+		puthz(80,352,_price[0],1,16,_ORANGE);
+	}
+	else if(p->trainnum[0]=='Z')
+	{
+		for(i=0;i<3;i++)
+		{
+			itoa(price[i],_price[i],10);
+			itoa(seatnum[i],_seatnum[i],10);
+		}
+		puthz(20,247,"硬座:",1,16,_BLACK);
+		puthz(20,282,"硬卧:",1,16,_BLACK);
+		puthz(20,317,"软卧:",1,16,_BLACK);
+		puthz(20,352,"无座:",1,16,_BLACK);
+		for(i=0;i<3;i++)
+		{
+			if(seatnum[i]==0)
+			{
+				puthz(114,247+35*i,"无票",1,16,_ORANGE);
+			}
+			else if(seatnum[i]<100)
+			{
+				strcat(_seatnum[i],"张"); 
+				puthz(114,247+35*i,_seatnum[i],1,16,_BLACK);
+			}
+			else
+			{
+				puthz(114,247+35*i,"有票",1,16,_BLACK);
+			}
+			puthz(68,247+35*i,_price[i],1,16,_ORANGE);
+		}
+		puthz(114,352,"有票",1,16,_BLACK);
+		puthz(68,352,_price[0],1,16,_ORANGE);
+	} 
+}
+
